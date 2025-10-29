@@ -1,0 +1,11 @@
+{
+  "name": "caresma-ai-proxy",
+  "version": "1.0.0",
+  "description": "Caresma proxy for API access (OpenAI, etc.)",
+  "main": "api/generate.js",
+  "type": "module",
+  "scripts": {
+    "start": "node api/generate.js"
+  },
+  "dependencies": {}
+}
