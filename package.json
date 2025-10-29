@@ -1,11 +1,13 @@
 {
   "name": "caresma-ai-proxy",
   "version": "1.0.0",
-  "description": "Caresma proxy for API access (OpenAI, etc.)",
+  "description": "Caresma proxy for API access (OpenAI, Deepgram, ElevenLabs)",
   "main": "api/generate.js",
   "type": "module",
   "scripts": {
     "start": "node api/generate.js"
   },
-  "dependencies": {}
+  "dependencies": {
+    "node-fetch": "^3.3.2"
+  }
 }
