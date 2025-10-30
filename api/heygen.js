@@ -1,9 +1,13 @@
-// api/heygen.js
-
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', ['POST']);
     return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  // auth gate
+  const clientToken = req.headers['x-caresma-token'];
+  if (clientToken !== process.env.CARESMA_PROXY_TOKEN) {
+    return res.status(401).json({ error: 'Unauthorized' });
   }
 
   try {
@@ -13,17 +17,19 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing script' });
     }
 
-    const safeScript = script.slice(0, 400); // limit length to prevent abuse
+    const safeScript = script.slice(0, 400);
 
+    // send a minimal payload HeyGen will accept for "quick avatar video"
     const payload = {
-      avatar_id: 'Tyrone-default',  // you can change this to any free avatar ID
+      avatar_id: 'Tyrone-default',
       voice_id: 'en_us_male',
       input_text: safeScript,
       dimension: '720p',
       background: 'white'
     };
 
-    const response = await fetch('https://api.heygen.com/v1/video.generate', {
+    // 🔁 NOTE: changed endpoint here to /v1/videos/generate
+    const heygenResp = await fetch('https://api.heygen.com/v1/videos/generate', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -32,11 +38,22 @@ export default async function handler(req, res) {
       body: JSON.stringify(payload),
     });
 
-    const data = await response.json();
-    return res.status(response.status).json(data);
+    // don't assume JSON; read raw
+    const rawText = await heygenResp.text();
 
-  } catch (error) {
-    console.error('HeyGen proxy error:', error);
+    // try to parse json, fallback to raw string
+    let parsed;
+    try {
+      parsed = JSON.parse(rawText);
+    } catch {
+      parsed = { raw: rawText };
+    }
+
+    // instead of throwing 500, forward HeyGen's status + parsed body
+    return res.status(heygenResp.status).json(parsed);
+
+  } catch (err) {
+    console.error('HeyGen proxy fatal error:', err);
     return res.status(500).json({ error: 'Internal Server Error' });
   }
 }
