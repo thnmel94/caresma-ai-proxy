@@ -1,37 +1,38 @@
 // api/heygen.js
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', ['POST']);
-    return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== "POST") {
+    res.setHeader("Allow", ["POST"]);
+    return res.status(405).json({ error: "Method not allowed" });
   }
 
-  // AUTH (same logic as generate / transcribe / speak)
-  const clientToken = req.headers['x-caresma-token'];
+  // --- AUTH ---
+  const clientToken = req.headers["x-caresma-token"];
   const allowedTokens = (process.env.TOKENS || "")
-    .split(',')
-    .map(t => t.trim())
+    .split(",")
+    .map((t) => t.trim())
     .filter(Boolean);
 
   if (!allowedTokens.includes(clientToken)) {
-    return res.status(401).json({ error: 'Unauthorized' });
+    return res.status(401).json({ error: "Unauthorized" });
   }
 
   try {
     const { script } = req.body;
     if (!script) {
-      return res.status(400).json({ error: 'Missing script' });
+      return res.status(400).json({ error: "Missing script" });
     }
 
     const safeScript = script.slice(0, 400);
 
-    // 👇 correct payload for /v2/video/generate
+    // --- PAYLOAD (final version) ---
     const payload = {
       video_inputs: [
         {
           character: {
-            avatar_id: "Tyrone-default", // replace with a real avatar_id from your HeyGen account
-            voice_id: "en_us_male"       // replace with a real voice_id
+            type: "avatar",              // 👈 NEW REQUIRED FIELD
+            avatar_id: "Tyrone-default", // replace with valid ID from your HeyGen account
+            voice_id: "en_us_male"       // replace with valid voice ID
           },
           input_text: safeScript
         }
@@ -58,7 +59,6 @@ export default async function handler(req, res) {
     }
 
     return res.status(heygenResp.status).json(parsed);
-
   } catch (err) {
     console.error("HeyGen proxy fatal error:", err);
     return res.status(500).json({ error: "Internal Server Error" });
