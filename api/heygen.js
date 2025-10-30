@@ -8,31 +8,25 @@ function isAllowed(req) {
     .split(",")
     .map((x) => x.trim())
     .filter(Boolean);
-
   if (!allowedTokens.length) return true;
   return allowedTokens.includes(token);
 }
 
 export default async function handler(req, res) {
-  // Only POST
   if (req.method !== "POST") {
     res.setHeader("Allow", ["POST"]);
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  // Require our shared token
   if (!isAllowed(req)) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
   const HEYGEN_API_KEY = process.env.HEYGEN_API_KEY;
   if (!HEYGEN_API_KEY) {
-    return res
-      .status(500)
-      .json({ error: "HEYGEN_API_KEY missing" });
+    return res.status(500).json({ error: "HEYGEN_API_KEY missing" });
   }
 
-  // We ONLY support audio_url now. No 'script'.
   const { audio_url, avatar_id } = req.body || {};
 
   if (!audio_url) {
@@ -42,7 +36,6 @@ export default async function handler(req, res) {
     });
   }
 
-  // Build the HeyGen payload using pre-generated audio
   const payload = {
     video_inputs: [
       {
@@ -62,7 +55,6 @@ export default async function handler(req, res) {
 
   console.log("🚀 PAYLOAD TO HEYGEN >>>", JSON.stringify(payload, null, 2));
 
-  // Call HeyGen
   const r = await fetch("https://api.heygen.com/v2/video/generate", {
     method: "POST",
     headers: {
@@ -74,10 +66,8 @@ export default async function handler(req, res) {
   });
 
   const data = await r.json();
-
   console.log("📬 HEYGEN RESPONSE <<<", JSON.stringify(data, null, 2));
 
-  // Bubble up structured result
   if (!r.ok) {
     return res.status(r.status).json({
       error: data?.error || "heygen_failed",
