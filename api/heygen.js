@@ -1,5 +1,7 @@
 export const config = { runtime: "nodejs" };
 
+console.log("🔥 heygen.js BUILD ID = B7");
+
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("Allow", ["POST"]);
@@ -19,14 +21,22 @@ export default async function handler(req, res) {
     });
   }
 
+  // Build the block HeyGen expects
   const videoInput = {
-    avatar: { avatar_id: avatar_id || "d08c85e6cff84d78b6dc41d83a2eccce" },
+    avatar: {
+      avatar_id: avatar_id || "d08c85e6cff84d78b6dc41d83a2eccce"
+    },
     voice: audio_url
-      ? { type: "audio", audio_url }
+      ? {
+          type: "audio",
+          audio_url
+        }
       : {
           type: "text",
           voice_id: voice_id || "en_us_male",
-          text: { input_text: script } // ✅ correct shape
+          text: {
+            input_text: script // <- IMPORTANT
+          }
         }
   };
 
@@ -36,8 +46,7 @@ export default async function handler(req, res) {
     background: "white"
   };
 
-  // 🔎 Debug log to confirm structure on Vercel logs
-  console.log("HEYGEN PAYLOAD >>>", JSON.stringify(payload, null, 2));
+  console.log("🚀 SENDING TO HEYGEN >>>", JSON.stringify(payload, null, 2));
 
   const r = await fetch("https://api.heygen.com/v2/video/generate", {
     method: "POST",
@@ -50,5 +59,8 @@ export default async function handler(req, res) {
   });
 
   const data = await r.json();
+
+  console.log("📬 HEYGEN RESPONSE <<<", JSON.stringify(data, null, 2));
+
   return res.status(r.status).json(data);
 }
