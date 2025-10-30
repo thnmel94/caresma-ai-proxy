@@ -1,12 +1,13 @@
 // api/heygen.js
 
 export default async function handler(req, res) {
+  // Allow only POST
   if (req.method !== "POST") {
     res.setHeader("Allow", ["POST"]);
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  // --- AUTHENTICATION ---
+  // --- AUTH CHECK (same as other endpoints) ---
   const clientToken = req.headers["x-caresma-token"];
   const allowedTokens = (process.env.TOKENS || "")
     .split(",")
@@ -18,33 +19,44 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { script } = req.body;
-    if (!script) {
-      return res.status(400).json({ error: "Missing script" });
+    // Get full payload from candidate
+    const body = req.body || {};
+
+    // Basic validation
+    if (!body.video_inputs && !body.script) {
+      return res.status(400).json({
+        error: "Missing required fields. Send either full video_inputs array or script."
+      });
     }
 
-    const safeScript = script.slice(0, 400);
+    // Allow two ways to use:
+    // 1️⃣ They send a full HeyGen payload (advanced)
+    // 2️⃣ They send just a simple { script, avatar_id, voice_id } (we’ll build it)
+    let payload;
 
-    // --- HEYGEN PAYLOAD ---
-    const payload = {
-      video_inputs: [
-        {
-          character: {
-            type: "avatar",
-            avatar_id: "Tyrone-default" // ⚠️ Replace with a real avatar_id from your HeyGen account
-          },
-          voice: {
-            type: "audio",               // ✅ CORRECT tag expected by HeyGen
-            voice_id: "en_us_male"       // ⚠️ Replace with a real voice_id
-          },
-          input_text: safeScript
-        }
-      ],
-      dimension: { width: 1280, height: 720 },
-      background: "white"
-    };
+    if (body.video_inputs) {
+      // Pass full HeyGen-style payload directly (no restrictions)
+      payload = body;
+    } else {
+      // Simple mode (we’ll build the payload for them)
+      const script = String(body.script || "").slice(0, 1000);
+      const avatar_id = body.avatar_id || "Tyrone-default";
+      const voice_id = body.voice_id || "en_us_male";
 
-    // --- SEND TO HEYGEN API ---
+      payload = {
+        video_inputs: [
+          {
+            character: { type: "avatar", avatar_id },
+            voice: { type: "text", voice_id },
+            input_text: script
+          }
+        ],
+        dimension: { width: 1280, height: 720 },
+        background: "white"
+      };
+    }
+
+    // Call HeyGen API
     const heygenResp = await fetch("https://api.heygen.com/v2/video/generate", {
       method: "POST",
       headers: {
@@ -54,6 +66,7 @@ export default async function handler(req, res) {
       body: JSON.stringify(payload)
     });
 
+    // Read response (sometimes not valid JSON)
     const rawText = await heygenResp.text();
     let parsed;
     try {
