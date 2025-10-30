@@ -1,4 +1,4 @@
-// /api/heygen.js
+// api/heygen.js
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -7,12 +7,12 @@ export default async function handler(req, res) {
   }
 
   const token = req.headers["x-caresma-token"];
-  const allowed = (process.env.TOKENS || "")
+  const allowedTokens = (process.env.TOKENS || "")
     .split(",")
     .map((x) => x.trim())
     .filter(Boolean);
 
-  if (!allowed.includes(token)) {
+  if (!allowedTokens.includes(token)) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
@@ -21,7 +21,7 @@ export default async function handler(req, res) {
 
     if (!script && !audio_url) {
       return res.status(400).json({
-        error: "You must provide either 'script' or 'audio_url'."
+        error: "You must provide either 'script' (text) or 'audio_url'."
       });
     }
 
@@ -34,17 +34,17 @@ export default async function handler(req, res) {
     };
 
     if (audio_url) {
-      // If using pre-generated ElevenLabs audio
+      // Option A — use pre-recorded audio (e.g., from ElevenLabs)
       videoInput.voice = {
         type: "audio",
         audio_url
       };
     } else {
-      // If using HeyGen’s internal TTS
+      // Option B — use HeyGen’s internal TTS
       videoInput.voice = {
         type: "text",
         voice_id: voice_id || "en_us_male",
-        text: script // ✅ new format
+        text: script // ✅ CORRECT FIELD
       };
     }
 
