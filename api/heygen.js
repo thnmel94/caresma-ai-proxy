@@ -6,7 +6,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  // --- AUTH ---
+  // --- AUTHENTICATION ---
   const clientToken = req.headers["x-caresma-token"];
   const allowedTokens = (process.env.TOKENS || "")
     .split(",")
@@ -25,14 +25,17 @@ export default async function handler(req, res) {
 
     const safeScript = script.slice(0, 400);
 
-    // --- PAYLOAD (final version) ---
+    // --- HEYGEN PAYLOAD ---
     const payload = {
       video_inputs: [
         {
           character: {
-            type: "avatar",              // 👈 NEW REQUIRED FIELD
-            avatar_id: "Tyrone-default", // replace with valid ID from your HeyGen account
-            voice_id: "en_us_male"       // replace with valid voice ID
+            type: "avatar",              // required by HeyGen
+            avatar_id: "Tyrone-default"  // ⚠️ replace with a real avatar_id from your HeyGen dashboard
+          },
+          voice: {
+            type: "heygen",              // required by HeyGen
+            voice_id: "en_us_male"       // ⚠️ replace with a real voice_id
           },
           input_text: safeScript
         }
@@ -41,6 +44,7 @@ export default async function handler(req, res) {
       background: "white"
     };
 
+    // --- SEND REQUEST TO HEYGEN API ---
     const heygenResp = await fetch("https://api.heygen.com/v2/video/generate", {
       method: "POST",
       headers: {
@@ -50,6 +54,7 @@ export default async function handler(req, res) {
       body: JSON.stringify(payload)
     });
 
+    // --- HANDLE RESPONSE ---
     const rawText = await heygenResp.text();
     let parsed;
     try {
@@ -59,6 +64,7 @@ export default async function handler(req, res) {
     }
 
     return res.status(heygenResp.status).json(parsed);
+
   } catch (err) {
     console.error("HeyGen proxy fatal error:", err);
     return res.status(500).json({ error: "Internal Server Error" });
