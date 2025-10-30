@@ -6,6 +6,7 @@ function isAllowed(req) {
     .split(",")
     .map((x) => x.trim())
     .filter(Boolean);
+
   if (!allowedTokens.length) return true;
   return allowedTokens.includes(token);
 }
@@ -40,24 +41,24 @@ export default async function handler(req, res) {
     // --- Avatar + voice setup ---
     const videoInput = {
       avatar: {
-        avatar_id: avatar_id || "5f4b7d15bde33a001f8c6529"
+        avatar_id: avatar_id || "d08c85e6cff84d78b6dc41d83a2eccce" // ✅ your new default avatar
       },
       voice: {}
     };
 
     if (audio_url) {
-      // Pre-recorded voice file
+      // Pre-recorded audio
       videoInput.voice = {
         type: "audio",
         audio_url
       };
     } else {
-      // Generate from text (HeyGen TTS expects nested text.input_text)
+      // HeyGen TTS (text input)
       videoInput.voice = {
         type: "text",
         voice_id: voice_id || "en_us_male",
         text: {
-          input_text: script     // ✅ <-- CRITICAL FIX HERE
+          input_text: script // ✅ correct nested format
         }
       };
     }
@@ -67,6 +68,9 @@ export default async function handler(req, res) {
       dimension: { width: 1280, height: 720 },
       background: "white"
     };
+
+    // Optional debug (you can remove later)
+    console.log("HEYGEN PAYLOAD >>>", JSON.stringify(payload, null, 2));
 
     const response = await fetch("https://api.heygen.com/v2/video/generate", {
       method: "POST",
