@@ -30,12 +30,12 @@ export default async function handler(req, res) {
       video_inputs: [
         {
           character: {
-            type: "avatar",              // required by HeyGen
-            avatar_id: "Tyrone-default"  // ⚠️ replace with a real avatar_id from your HeyGen dashboard
+            type: "avatar",
+            avatar_id: "Tyrone-default" // ⚠️ Replace with a real avatar_id from your HeyGen account
           },
           voice: {
-            type: "heygen",              // required by HeyGen
-            voice_id: "en_us_male"       // ⚠️ replace with a real voice_id
+            type: "audio",               // ✅ CORRECT tag expected by HeyGen
+            voice_id: "en_us_male"       // ⚠️ Replace with a real voice_id
           },
           input_text: safeScript
         }
@@ -44,7 +44,7 @@ export default async function handler(req, res) {
       background: "white"
     };
 
-    // --- SEND REQUEST TO HEYGEN API ---
+    // --- SEND TO HEYGEN API ---
     const heygenResp = await fetch("https://api.heygen.com/v2/video/generate", {
       method: "POST",
       headers: {
@@ -54,7 +54,6 @@ export default async function handler(req, res) {
       body: JSON.stringify(payload)
     });
 
-    // --- HANDLE RESPONSE ---
     const rawText = await heygenResp.text();
     let parsed;
     try {
